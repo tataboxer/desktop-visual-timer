@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import uuid
 from datetime import datetime
+import os
+from PIL import Image, ImageTk
 
 # UI Design System - 8px Grid System
 SPACING = {
@@ -37,7 +39,7 @@ class AppGUI(tk.Tk):
         self.timer_engine = timer_engine
         self.settings_manager = settings_manager
 
-        self.title("安静闹钟 v1.0")
+        self.title("牛马生物钟 v1.0")
         self.geometry("800x550")  # 增加窗口大小
         self.configure(bg=COLORS['bg_primary'])
         self.minsize(750, 500)  # 设置最小尺寸
@@ -419,7 +421,7 @@ class AppGUI(tk.Tk):
             bottom_row.pack(fill=tk.X, pady=(SPACING['sm'], 0))
             
             # Alarm name with better typography
-            name_text = alarm['name'] or "未命名闹钟"
+            name_text = alarm['name'] or "自备粮草"
             name_label = tk.Label(bottom_row, text=name_text, 
                                 font=('Segoe UI', 10), 
                                 fg=COLORS['text_primary'], bg=COLORS['bg_card'])
@@ -488,7 +490,7 @@ class AppGUI(tk.Tk):
             "hour": int(self.hour_var.get()),
             "minute": int(self.minute_var.get()),
             "second": int(self.second_var.get()),
-            "name": self.name_var.get() or "未命名闹钟",
+            "name": self.name_var.get() or "自备粮草",
             "days": selected_days,
             "is_active": True
         }

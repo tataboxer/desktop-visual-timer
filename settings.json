@@ -2,7 +2,7 @@
     "notifications": {
         "enabled": true,
         "sound_enabled": false,
-        "timeout": 10
+        "timeout": 5
     },
     "ui": {
         "theme": "light",
@@ -13,7 +13,7 @@
     "timers": {
         "default_pomodoro": 30,
         "default_short_break": 5,
-        "default_long_break": 20,
+        "default_long_break": 15,
         "auto_start_breaks": false
     },
     "performance": {

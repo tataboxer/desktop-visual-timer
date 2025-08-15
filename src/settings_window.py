@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from settings_manager import SettingsManager
+import os
+from PIL import Image, ImageTk
 
 # Import UI constants from gui.py
 SPACING = {
@@ -44,7 +46,7 @@ class SettingsWindow:
             
         self.window = tk.Toplevel(self.parent)
         self.window.title("应用设置")
-        self.window.geometry("500x600")
+        self.window.geometry("500x680")  # 增加高度从600到750
         self.window.configure(bg=COLORS['bg_primary'])
         self.window.resizable(False, False)
         
@@ -60,21 +62,61 @@ class SettingsWindow:
         
         self._create_widgets()
         
+    def _create_title_with_image(self, parent):
+        """Create title area with background image."""
+        try:
+            # Load and resize the image
+            image_path = os.path.join("assets", "notification.png")
+            if os.path.exists(image_path):
+                # Open and resize image to fit the settings window width
+                original_image = Image.open(image_path)
+                original_width, original_height = original_image.size
+                
+                # Scale to fit settings window (approximately 450px wide)
+                target_width = 450
+                target_height = int((target_width / original_width) * original_height)
+                
+                # Limit height to not take too much space
+                if target_height > 200:
+                    target_height = 200
+                    target_width = int((target_height / original_height) * original_width)
+                
+                resized_image = original_image.resize((target_width, target_height), Image.Resampling.LANCZOS)
+                self.title_photo = ImageTk.PhotoImage(resized_image)
+                
+                # Create image label
+                image_label = tk.Label(parent, image=self.title_photo, bg=COLORS['bg_primary'])
+                image_label.pack(pady=(0, SPACING['lg']))
+                
+                print(f"Settings title image loaded: {target_width}x{target_height}")
+            else:
+                # Fallback to text title if image not found
+                title_label = tk.Label(parent, text="牛马生物钟设置", 
+                                      font=('Segoe UI', 16, 'bold'),
+                                      fg=COLORS['text_primary'], bg=COLORS['bg_primary'])
+                title_label.pack(pady=(0, SPACING['lg']))
+                print(f"Image not found, using text title: {image_path}")
+        except Exception as e:
+            # Fallback to text title if image loading fails
+            title_label = tk.Label(parent, text="牛马生物钟设置", 
+                                  font=('Segoe UI', 16, 'bold'),
+                                  fg=COLORS['text_primary'], bg=COLORS['bg_primary'])
+            title_label.pack(pady=(0, SPACING['lg']))
+            print(f"Failed to load title image: {e}")
+
     def _create_widgets(self):
         """Creates the settings window widgets."""
         # Main container
         main_frame = tk.Frame(self.window, bg='#F5F5F7')
         main_frame.pack(fill=tk.BOTH, expand=True, padx=SPACING['md'], pady=SPACING['md'])
         
-        # Title
-        title_label = tk.Label(main_frame, text="应用设置", 
-                              font=('Segoe UI', 16, 'bold'),
-                              fg='#1D1D1F', bg='#F5F5F7')
-        title_label.pack(pady=(0, SPACING['lg']))
+        # Title with background image
+        self._create_title_with_image(main_frame)
         
         # Create notebook for tabs
         notebook = ttk.Notebook(main_frame)
-        notebook.pack(fill=tk.BOTH, expand=True, pady=(0, SPACING['md']))
+        notebook.configure(height=330)  # 设置固定高度
+        notebook.pack(fill=tk.X, pady=(0, SPACING['md']))  # 移除expand=True，只水平填充
         
         # Notification settings tab
         self._create_notification_tab(notebook)
@@ -440,14 +482,7 @@ class SettingsWindow:
         # Effects explanation
         info_text = """视觉效果说明：
 • 边缘闪光：屏幕边缘细红线闪烁，不遮挡内容
-• 全屏闪烁：整个屏幕轻微闪烁提醒
-
-强度设置：
-• 低：轻微效果，适合工作环境
-• 中：平衡效果，适合大多数情况  
-• 高：强烈效果，确保不会错过
-
-注意：视觉效果会与系统通知和托盘闪烁同时工作"""
+• 全屏闪烁：整个屏幕轻微闪烁提醒"""
         
         info_label = tk.Label(content, text=info_text,
                              font=('Segoe UI', 9),
