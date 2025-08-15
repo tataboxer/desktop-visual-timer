@@ -51,6 +51,10 @@ class AppGUI(tk.Tk):
         self._setup_widgets()
         self._load_alarms_to_list()
 
+        # Check if should start minimized
+        if self.settings_manager and self.settings_manager.get("ui.start_minimized", False):
+            self.after(100, self.hide_window)  # Hide after GUI is fully loaded
+
         # Intercept close button
         self.protocol("WM_DELETE_WINDOW", self._on_window_close)
     

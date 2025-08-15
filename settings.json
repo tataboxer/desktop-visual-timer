@@ -7,7 +7,7 @@
     "ui": {
         "theme": "light",
         "minimize_to_tray": true,
-        "start_minimized": false,
+        "start_minimized": true,
         "auto_start": false
     },
     "timers": {
