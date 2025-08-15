@@ -1,4 +1,5 @@
 import threading
+import time
 
 from data_manager import DataManager
 from timer_engine import TimerEngine
@@ -67,30 +68,35 @@ class Application:
         # Start tray icon flashing
         self.tray_controller.start_flashing(alarm)
         
-        # Show screen visual effects
+        # Show screen visual effects first
         try:
             self.screen_effects.show_alarm_effect()
         except Exception as e:
             print(f"Screen effects error: {e}")
         
-        # Show system notification
+        # Show system notification after a delay to avoid conflict with screen effects
         alarm_type = alarm.get('type', 'alarm')
         alarm_name = alarm.get('name', 'Unknown')
         
-        try:
-            if alarm_type == 'countdown':
-                self.notification_manager.show_alarm_notification(alarm_name, 'countdown')
-            else:
-                self.notification_manager.show_alarm_notification(alarm_name, 'alarm')
-                
-                # For one-time alarms, automatically remove them after triggering
-                if not alarm.get('days', []):
-                    # This is a one-time alarm, schedule it for removal
-                    # We don't remove it immediately to allow the user to cancel the flashing
-                    # It will be removed when the user cancels or after a timeout
-                    print(f"One-time alarm {alarm_name} triggered - will be removed when cancelled")
-        except Exception as e:
-            print(f"Notification error: {e}")
+        def show_delayed_notification():
+            try:
+                if alarm_type == 'countdown':
+                    self.notification_manager.show_alarm_notification(alarm_name, 'countdown')
+                else:
+                    self.notification_manager.show_alarm_notification(alarm_name, 'alarm')
+                    
+                    # For one-time alarms, automatically remove them after triggering
+                    if not alarm.get('days', []):
+                        # This is a one-time alarm, schedule it for removal
+                        # We don't remove it immediately to allow the user to cancel the flashing
+                        # It will be removed when the user cancels or after a timeout
+                        print(f"One-time alarm {alarm_name} triggered - will be removed when cancelled")
+            except Exception as e:
+                print(f"Notification error: {e}")
+        
+        # Delay notification by 2 seconds to let screen effects show first
+        notification_thread = threading.Thread(target=lambda: (time.sleep(2), show_delayed_notification()), daemon=True)
+        notification_thread.start()
         
         print(f"Alarm triggered: {alarm_name} (type: {alarm_type})")
 

@@ -45,7 +45,6 @@ class TrayController:
             if os.path.exists(icon_path) and os.path.exists(icon_alert_path):
                 self.icon_default = Image.open(icon_path)
                 self.icon_alert = Image.open(icon_alert_path)
-                print("✅ 使用64x64图标 - 系统托盘标准尺寸")
             else:
                 raise FileNotFoundError("找不到64x64图标文件")
                 
@@ -99,15 +98,13 @@ class TrayController:
                 long_break_minutes = 15
                 short_break_minutes = 5
             
-            quick_timer_menu = pystray.Menu(
-                pystray.MenuItem(f"🍅 Focus {pomodoro_minutes} min", lambda: self._start_quick_timer(pomodoro_minutes, "Pomodoro Focus")),
-                pystray.MenuItem(f"🚶 Break {long_break_minutes} min", lambda: self._start_quick_timer(long_break_minutes, "Long Break")),
-                pystray.MenuItem(f"☕ Break {short_break_minutes} min", lambda: self._start_quick_timer(short_break_minutes, "Short Break"))
-            )
-            
             return pystray.Menu(
                 pystray.MenuItem("Show/Hide Window", self._show_and_stop_flashing, default=True),
-                pystray.MenuItem("Quick Timers", quick_timer_menu),
+                pystray.Menu.SEPARATOR,
+                pystray.MenuItem(f"🍅 Focus {pomodoro_minutes} min", lambda: self._start_quick_timer(pomodoro_minutes, "Pomodoro Focus")),
+                pystray.MenuItem(f"🚶 Break {long_break_minutes} min", lambda: self._start_quick_timer(long_break_minutes, "Long Break")),
+                pystray.MenuItem(f"☕ Break {short_break_minutes} min", lambda: self._start_quick_timer(short_break_minutes, "Short Break")),
+                pystray.Menu.SEPARATOR,
                 pystray.MenuItem("Exit", self._on_exit)
             )
 

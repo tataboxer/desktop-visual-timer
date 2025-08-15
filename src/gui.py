@@ -144,9 +144,36 @@ class AppGUI(tk.Tk):
                                 command=self._clear_form)
         new_alarm_btn.pack(side=tk.RIGHT)
 
-        # Alarm list container with proper spacing
-        self.alarm_list_frame = tk.Frame(left_content, bg=COLORS['bg_card'])
-        self.alarm_list_frame.pack(fill=tk.BOTH, expand=True)
+        # Alarm list container with scrolling (no visible scrollbar)
+        alarm_list_container = tk.Frame(left_content, bg=COLORS['bg_card'])
+        alarm_list_container.pack(fill=tk.BOTH, expand=True)
+        
+        # Create canvas for scrolling without visible scrollbar
+        self.alarm_canvas = tk.Canvas(alarm_list_container, bg=COLORS['bg_card'], highlightthickness=0)
+        self.alarm_list_frame = tk.Frame(self.alarm_canvas, bg=COLORS['bg_card'])
+        
+        # Configure scrolling
+        def _configure_scroll_region(event):
+            self.alarm_canvas.configure(scrollregion=self.alarm_canvas.bbox("all"))
+        
+        def _configure_canvas_width(event):
+            # Make the frame width match the canvas width
+            canvas_width = event.width
+            self.alarm_canvas.itemconfig(self.canvas_window, width=canvas_width)
+        
+        self.alarm_list_frame.bind("<Configure>", _configure_scroll_region)
+        self.alarm_canvas.bind("<Configure>", _configure_canvas_width)
+        
+        self.canvas_window = self.alarm_canvas.create_window((0, 0), window=self.alarm_list_frame, anchor="nw")
+        self.alarm_canvas.pack(fill="both", expand=True)
+        
+        # Bind mouse wheel to canvas for scrolling
+        def _on_mousewheel(event):
+            self.alarm_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        # Bind mouse wheel to canvas and its children
+        self.alarm_canvas.bind("<MouseWheel>", _on_mousewheel)
+        self.alarm_list_frame.bind("<MouseWheel>", _on_mousewheel)
 
         # Right panel - Edit Alarm (Card style)
         right_card = tk.Frame(main_container, bg=COLORS['bg_card'], relief='solid',
@@ -411,10 +438,15 @@ class AppGUI(tk.Tk):
                                 bg=COLORS['bg_card'])
             type_label.pack(side=tk.RIGHT)
             
-            # Make the entire item clickable for editing
-            for widget in [alarm_content, top_row, bottom_row, time_label, name_label]:
+            # Make the entire item clickable for editing and scrollable
+            def _on_mousewheel(event):
+                self.alarm_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+            
+            for widget in [alarm_item, alarm_content, top_row, bottom_row, time_label, name_label, controls_frame, toggle_btn, delete_btn, type_label]:
                 widget.bind("<Button-1>", lambda e, a=alarm: self._populate_form(a))
                 widget.configure(cursor="hand2")
+                # Bind mouse wheel to all widgets for smooth scrolling
+                widget.bind("<MouseWheel>", _on_mousewheel)
 
     def _populate_form(self, alarm):
         self.selected_alarm_id = alarm['id']
