@@ -652,6 +652,7 @@ class AppGUI(tk.Tk):
             
         try:
             from settings_window import SettingsWindow
+            # 只在第一次创建，之后复用
             if not self.settings_window:
                 self.settings_window = SettingsWindow(
                     self, 

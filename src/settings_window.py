@@ -63,13 +63,13 @@ class SettingsWindow:
     def _create_widgets(self):
         """Creates the settings window widgets."""
         # Main container
-        main_frame = tk.Frame(self.window, bg=COLORS['bg_primary'])
+        main_frame = tk.Frame(self.window, bg='#F5F5F7')
         main_frame.pack(fill=tk.BOTH, expand=True, padx=SPACING['md'], pady=SPACING['md'])
         
         # Title
         title_label = tk.Label(main_frame, text="应用设置", 
                               font=('Segoe UI', 16, 'bold'),
-                              fg=COLORS['text_primary'], bg=COLORS['bg_primary'])
+                              fg='#1D1D1F', bg='#F5F5F7')
         title_label.pack(pady=(0, SPACING['lg']))
         
         # Create notebook for tabs
@@ -92,13 +92,13 @@ class SettingsWindow:
         self._create_visual_effects_tab(notebook)
         
         # Buttons frame
-        buttons_frame = tk.Frame(main_frame, bg=COLORS['bg_primary'])
+        buttons_frame = tk.Frame(main_frame, bg='#F5F5F7')
         buttons_frame.pack(fill=tk.X, pady=(SPACING['md'], 0))
         
         # Reset to defaults button
         reset_btn = tk.Button(buttons_frame, text="恢复默认设置",
                              font=('Segoe UI', 9),
-                             fg=COLORS['text_secondary'], bg=COLORS['border_light'],
+                             fg='#6E6E73', bg='#F2F2F7',
                              relief='flat', cursor='hand2',
                              padx=SPACING['md'], pady=SPACING['sm'],
                              command=self._reset_to_defaults)
@@ -107,7 +107,7 @@ class SettingsWindow:
         # Close button
         close_btn = tk.Button(buttons_frame, text="关闭",
                              font=('Segoe UI', 9, 'bold'),
-                             fg='white', bg=COLORS['accent'],
+                             fg='white', bg='#007AFF',
                              relief='flat', cursor='hand2',
                              padx=SPACING['md'], pady=SPACING['sm'],
                              command=self.window.destroy)
@@ -115,7 +115,7 @@ class SettingsWindow:
         
     def _create_notification_tab(self, notebook):
         """Creates the notification settings tab."""
-        frame = tk.Frame(notebook, bg=COLORS['bg_secondary'])
+        frame = tk.Frame(notebook, bg='#FFFFFF')
         notebook.add(frame, text="通知设置")
         
         # Content frame with padding
