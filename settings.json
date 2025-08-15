@@ -1,0 +1,29 @@
+{
+    "notifications": {
+        "enabled": true,
+        "sound_enabled": false,
+        "timeout": 1
+    },
+    "ui": {
+        "theme": "light",
+        "minimize_to_tray": true,
+        "start_minimized": false,
+        "auto_start": false
+    },
+    "timers": {
+        "default_pomodoro": 25,
+        "default_short_break": 5,
+        "default_long_break": 15,
+        "auto_start_breaks": false
+    },
+    "performance": {
+        "check_interval": 2.0,
+        "low_power_mode": true
+    },
+    "visual_effects": {
+        "enabled": true,
+        "type": "screen_flash",
+        "duration": 1.5,
+        "intensity": "low"
+    }
+}
