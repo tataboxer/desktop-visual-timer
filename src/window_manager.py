@@ -820,92 +820,30 @@ class WindowManager:
             else:
                 self.logger.debug(f"Window is not maximized, using normal move")
             
-            # Try a simpler approach first - just move without resizing
-            self.logger.debug("Trying move-only approach first")
-            move_success = win32gui.SetWindowPos(
-                hwnd, 0, new_x, new_y, 0, 0,
-                win32con.SWP_NOZORDER | win32con.SWP_NOACTIVATE | win32con.SWP_NOSIZE
+            # 直接使用最有效的策略（基于实际debug-log优化）
+            self.logger.debug("Moving window using optimized strategy")
+            success = win32gui.SetWindowPos(
+                hwnd, 0, new_x, new_y, new_width, new_height,
+                win32con.SWP_NOZORDER | win32con.SWP_NOACTIVATE
             )
             
-            if move_success:
-                self.logger.debug(f"Window moved to position ({new_x}, {new_y})")
+            # 关键：验证实际结果（这才是成功的真正秘诀）
+            try:
+                current_rect = win32gui.GetWindowRect(hwnd)
+                self.logger.debug(f"Window rect after move attempt: {current_rect}")
                 
-                # Now try to resize separately
-                self.logger.debug(f"Now trying to resize to {new_width}x{new_height}")
-                resize_success = win32gui.SetWindowPos(
-                    hwnd, 0, 0, 0, new_width, new_height,
-                    win32con.SWP_NOZORDER | win32con.SWP_NOACTIVATE | win32con.SWP_NOMOVE
-                )
-                
-                if resize_success:
-                    self.logger.debug("Window resized successfully")
+                # 检查位置是否接近目标位置（允许一些误差）
+                tolerance = 10
+                if (abs(current_rect[0] - new_x) <= tolerance and 
+                    abs(current_rect[1] - new_y) <= tolerance):
+                    self._log_important("Window moved successfully!")
                     return True
                 else:
-                    import ctypes
-                    resize_error = ctypes.windll.kernel32.GetLastError()
-                    self.logger.warning(f"Resize failed with error: {resize_error}, but move succeeded")
-                    return True  # At least we moved it
-            else:
-                # Move failed, try the original approach
-                import ctypes
-                move_error = ctypes.windll.kernel32.GetLastError()
-                self.logger.debug(f"Move-only failed with error: {move_error}, trying combined approach")
-                
-                success = win32gui.SetWindowPos(
-                    hwnd, 0, new_x, new_y, new_width, new_height,
-                    win32con.SWP_NOZORDER | win32con.SWP_NOACTIVATE
-                )
-                
-                if success:
-                    self.logger.debug(f"Combined move+resize succeeded")
-                    return True
-                else:
-                    error_code = ctypes.windll.kernel32.GetLastError()
-                    self.logger.debug(f"SetWindowPos returned error: {error_code}, checking actual result")
-                    self.logger.debug(f"Parameters: hwnd={hwnd}, pos=({new_x}, {new_y}), size=({new_width}x{new_height})")
-                    
-                    # 检查窗口是否实际移动了（即使API返回失败）
-                    try:
-                        current_rect = win32gui.GetWindowRect(hwnd)
-                        self.logger.debug(f"Current window rect after 'failed' move: {current_rect}")
-                        
-                        # 检查位置是否接近目标位置（允许一些误差）
-                        tolerance = 10
-                        if (abs(current_rect[0] - new_x) <= tolerance and 
-                            abs(current_rect[1] - new_y) <= tolerance):
-                            self._log_important("Window moved successfully!")
-                            return True
-                    except Exception as e:
-                        self.logger.debug(f"Could not verify window position: {e}")
-                    
-                    # Final fallback: try using ShowWindow and MoveWindow
-                    self.logger.debug("Trying final fallback with MoveWindow")
-                    try:
-                        move_result = win32gui.MoveWindow(hwnd, new_x, new_y, new_width, new_height, True)
-                        if move_result:
-                            self.logger.debug("MoveWindow succeeded as fallback")
-                            return True
-                        else:
-                            move_error = ctypes.windll.kernel32.GetLastError()
-                            self.logger.debug(f"MoveWindow returned error: {move_error}, checking actual result")
-                            
-                            # 再次检查窗口是否实际移动了
-                            try:
-                                final_rect = win32gui.GetWindowRect(hwnd)
-                                self.logger.debug(f"Final window rect: {final_rect}")
-                                if (abs(final_rect[0] - new_x) <= tolerance and 
-                                    abs(final_rect[1] - new_y) <= tolerance):
-                                    self._log_important("Window moved successfully!")
-                                    return True
-                            except Exception as e:
-                                self.logger.debug(f"Could not verify final position: {e}")
-                    except Exception as e:
-                        self.logger.error(f"MoveWindow exception: {e}")
-                    
+                    self.logger.debug(f"Window not at target position. Expected: ({new_x}, {new_y}), Actual: ({current_rect[0]}, {current_rect[1]})")
                     return False
-            
-            # This line should not be reached due to the logic above
-            return False
+            except Exception as e:
+                self.logger.debug(f"Could not verify window position: {e}")
+                return False
             
         except Exception as e:
             self.logger.error(f"Failed to move window: {e}")
@@ -918,92 +856,41 @@ class WindowManager:
         try:
             self.logger.info(f"Moving maximized window to target monitor at ({new_x}, {new_y})")
             
-            # Method 1: Optimized SetWindowPlacement approach
-            try:
-                self.logger.debug("Method 1: Trying optimized SetWindowPlacement")
-                
-                # Get current window placement
-                placement = win32gui.GetWindowPlacement(hwnd)
-                
-                # Modify the normal position to be on the target monitor
-                normal_rect = placement[4]
-                current_width = normal_rect[2] - normal_rect[0]
-                current_height = normal_rect[3] - normal_rect[1]
-                
-                # Set new normal position on target monitor
-                new_normal_rect = (new_x, new_y, new_x + current_width, new_y + current_height)
-                
-                # Create new placement - keep it maximized (SW_SHOWMAXIMIZED = 3)
-                new_placement = (
-                    placement[0],  # length
-                    placement[1],  # flags  
-                    3,  # showCmd - keep maximized
-                    placement[3],  # ptMinPosition
-                    new_normal_rect  # rcNormalPosition
-                )
-                
-                # Set the new placement directly (should move and stay maximized)
-                placement_success = win32gui.SetWindowPlacement(hwnd, new_placement)
-                
-                if placement_success:
-                    self.logger.info("✓ Fast SetWindowPlacement method succeeded")
-                    return True
-                else:
-                    self.logger.debug("Fast SetWindowPlacement failed, trying slower method")
-                    
-            except Exception as e:
-                self.logger.debug(f"Fast SetWindowPlacement failed: {e}")
+            # 基于debug-log优化：直接使用最有效的策略
+            self.logger.debug("Using optimized maximized window move strategy")
             
-            # Method 2: Simplified fallback approach
-            self.logger.debug("Method 2: Using simplified approach")
-            
-            # Step 1: Restore the window (shorter delay)
+            # 恢复窗口到正常状态
             win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-            time.sleep(0.15)  # Reduced delay
+            time.sleep(0.15)  # 给窗口时间恢复
             
-            # Step 2: Simple move strategy only
+            # 移动窗口到目标位置
             temp_width = min(width, 800)
             temp_height = min(height, 600)
             
+            win32gui.SetWindowPos(
+                hwnd, 0, new_x, new_y, temp_width, temp_height,
+                win32con.SWP_NOZORDER | win32con.SWP_SHOWWINDOW
+            )
+            
+            # 短暂延迟后重新最大化
+            time.sleep(0.1)
+            win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
+            
+            # 验证移动是否成功（关键步骤）
             try:
-                move_success = win32gui.SetWindowPos(
-                    hwnd, 0, new_x, new_y, temp_width, temp_height,
-                    win32con.SWP_NOZORDER | win32con.SWP_SHOWWINDOW
-                )
+                time.sleep(0.1)  # 给窗口时间完成最大化
+                current_rect = win32gui.GetWindowRect(hwnd)
+                self.logger.debug(f"Maximized window rect after move: {current_rect}")
                 
-                if move_success:
-                    # Quick maximize
-                    time.sleep(0.1)  # Minimal delay
-                    win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
-                    self.logger.info("✓ Fallback method succeeded")
+                # 检查窗口是否在目标显示器上（通过x坐标范围判断）
+                if current_rect[0] >= new_x - 100:  # 允许一些误差
+                    self._log_important("Maximized window moved successfully!")
                     return True
                 else:
-                    self.logger.debug("SetWindowPos returned failure, checking actual result")
-                    # 检查窗口是否实际移动了（即使API返回失败）
-                    try:
-                        time.sleep(0.1)  # 给窗口一点时间
-                        current_rect = win32gui.GetWindowRect(hwnd)
-                        self.logger.debug(f"Maximized window rect after 'failed' move: {current_rect}")
-                        
-                        # 检查窗口是否在目标显示器上（通过检查x坐标范围）
-                        if current_rect[0] >= new_x - 100:  # 允许一些误差
-                            self._log_important("Maximized window moved successfully!")
-                            win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)  # 确保最大化
-                            return True
-                    except Exception as e:
-                        self.logger.debug(f"Could not verify maximized window position: {e}")
-                    
-                    # Restore original state
-                    win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
+                    self.logger.debug(f"Maximized window not on target monitor. Expected x >= {new_x-100}, got {current_rect[0]}")
                     return False
-                    
             except Exception as e:
-                self.logger.error(f"Fallback method exception: {e}")
-                # Restore original state
-                try:
-                    win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
-                except:
-                    pass
+                self.logger.debug(f"Could not verify maximized window position: {e}")
                 return False
                 
         except Exception as e:

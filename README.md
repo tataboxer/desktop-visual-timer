@@ -92,9 +92,11 @@ pip install -r requirements.txt
 
 **主要依赖包括：**
 - `tkinter` - GUI界面框架
-- `notify-py` - 跨平台通知系统  
+- `notify-py` - 跨平台通知系统
+- `pystray` - 系统托盘支持
 - `pywin32` - Windows API支持（窗口管理功能）
 - `pynput` - 全局热键监听
+- `Pillow` - 图像处理
 
 ### 3. 运行应用
 ```bash
@@ -160,15 +162,20 @@ desktop-visual-timer/
 │   ├── settings_manager.py     # 设置管理
 │   ├── settings_window.py      # 设置界面
 │   ├── screen_effects.py       # 屏幕视觉效果
+│   ├── window_manager.py       # 窗口跨屏移动功能 ⭐ NEW!
 │   └── __init__.py
 ├── assets/                     # 资源文件
 │   ├── icon_64.png            # 64x64 默认托盘图标
-│   └── icon_alert_64.png      # 64x64 闹钟提醒图标
+│   ├── icon_alert_64.png      # 64x64 闹钟提醒图标
+│   └── notification.png       # 通知图标
 ├── docs/                       # 文档
-│   └── prd.md                 # 产品需求文档
+│   ├── alarm_prd.md            # 产品需求文档 (闹钟相关prd)
+│   └── window_manager.md     # 窗口管理完整实现文档 ⭐ NEW!
 ├── alarms.json                # 闹钟数据存储文件
 ├── settings.json              # 应用设置存储文件
-├── requirements.txt           # Python依赖
+├── requirements.txt           # Python依赖（包含pywin32, pynput）
+├── debug-log.md              # 调试日志记录
+├── 牛马生物钟.bat            # Windows启动脚本
 └── README.md                 # 项目说明文档
 ```
 
@@ -304,7 +311,9 @@ python src/main.py
 - [pystray](https://github.com/moses-palmer/pystray) - 系统托盘集成
 - [schedule](https://github.com/dbader/schedule) - 定时任务调度
 - [Pillow](https://github.com/python-pillow/Pillow) - 图像处理
-- [plyer](https://github.com/kivy/plyer) - 跨平台通知
+- [notify-py](https://github.com/ms7m/notify-py) - 跨平台通知系统
+- [pywin32](https://github.com/mhammond/pywin32) - Windows API支持
+- [pynput](https://github.com/moses-palmer/pynput) - 全局热键监听
 
 ---
 
