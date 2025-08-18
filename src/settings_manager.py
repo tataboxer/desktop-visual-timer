@@ -1,6 +1,7 @@
 import json
 import os
-from typing import Dict, Any
+import re
+from typing import Dict, Any, List
 
 class SettingsManager:
     """Manages application settings and preferences."""
@@ -39,6 +40,12 @@ class SettingsManager:
                 "type": "border_flash",  # border_flash, screen_flash
                 "duration": 5.0,  # seconds
                 "intensity": "medium"  # low, medium, high
+            },
+            "window_management": {
+                "enabled": True,
+                "hotkey": "F12",
+                "exclude_fullscreen": True,
+                "debug_mode": False
             }
         }
         self.settings = self.load_settings()
@@ -127,3 +134,84 @@ class SettingsManager:
         """Resets all settings to default values."""
         self.settings = self.default_settings.copy()
         self.save_settings()
+    
+    def validate_hotkey(self, hotkey: str) -> Dict[str, Any]:
+        """
+        Validates hotkey format and returns validation result.
+        
+        Args:
+            hotkey: Hotkey string (e.g., "F12", "Ctrl+F12", "Alt+Shift+F1")
+            
+        Returns:
+            Dict with validation result:
+            {
+                'valid': bool,
+                'error': str or None,
+                'parsed': dict or None
+            }
+        """
+        if not hotkey or not isinstance(hotkey, str):
+            return {'valid': False, 'error': 'Hotkey cannot be empty', 'parsed': None}
+        
+        hotkey = hotkey.strip()
+        
+        # Valid modifiers and function keys
+        valid_modifiers = {'Ctrl', 'Alt', 'Shift', 'Win'}
+        valid_function_keys = {f'F{i}' for i in range(1, 13)}
+        valid_letter_keys = {chr(i) for i in range(ord('A'), ord('Z') + 1)}
+        valid_number_keys = {str(i) for i in range(10)}
+        valid_special_keys = {'Space', 'Tab', 'Enter', 'Esc', 'Delete', 'Insert', 'Home', 'End', 'PageUp', 'PageDown'}
+        
+        # Parse hotkey
+        parts = [part.strip() for part in hotkey.split('+')]
+        if not parts:
+            return {'valid': False, 'error': 'Invalid hotkey format', 'parsed': None}
+        
+        # Last part should be the main key
+        main_key = parts[-1]
+        modifiers = parts[:-1]
+        
+        # Validate modifiers
+        for modifier in modifiers:
+            if modifier not in valid_modifiers:
+                return {'valid': False, 'error': f'Invalid modifier: {modifier}', 'parsed': None}
+        
+        # Validate main key
+        if not (main_key in valid_function_keys or 
+                main_key in valid_letter_keys or 
+                main_key in valid_number_keys or 
+                main_key in valid_special_keys):
+            return {'valid': False, 'error': f'Invalid key: {main_key}', 'parsed': None}
+        
+        # Check for duplicate modifiers
+        if len(modifiers) != len(set(modifiers)):
+            return {'valid': False, 'error': 'Duplicate modifiers not allowed', 'parsed': None}
+        
+        parsed = {
+            'main_key': main_key,
+            'modifiers': modifiers,
+            'full_hotkey': hotkey
+        }
+        
+        return {'valid': True, 'error': None, 'parsed': parsed}
+    
+    def get_window_management_setting(self, key: str, default=None):
+        """Get a window management specific setting."""
+        return self.get(f"window_management.{key}", default)
+    
+    def set_window_management_setting(self, key: str, value: Any) -> bool:
+        """
+        Set a window management specific setting with validation.
+        
+        Returns:
+            bool: True if setting was successfully set, False otherwise
+        """
+        # Special validation for hotkey
+        if key == "hotkey":
+            validation = self.validate_hotkey(value)
+            if not validation['valid']:
+                print(f"Invalid hotkey '{value}': {validation['error']}")
+                return False
+        
+        self.set(f"window_management.{key}", value)
+        return True

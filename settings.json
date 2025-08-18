@@ -25,5 +25,11 @@
         "type": "screen_flash",
         "duration": 1.5,
         "intensity": "low"
+    },
+    "window_management": {
+        "enabled": true,
+        "hotkey": "F9",
+        "exclude_fullscreen": true,
+        "debug_mode": false
     }
 }

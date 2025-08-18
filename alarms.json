@@ -1,9 +1,9 @@
 [
     {
-        "hour": 14,
-        "minute": 30,
+        "hour": 9,
+        "minute": 20,
         "second": 0,
-        "name": "搞",
+        "name": "自备粮草",
         "days": [
             "mon",
             "tue",
@@ -12,6 +12,21 @@
             "fri"
         ],
         "is_active": true,
-        "id": "cf330a13-a2cc-46d0-9b4e-4c93e754dd3f"
+        "id": "cfbca1bc-5a21-4b36-bc45-5695ab644b19"
+    },
+    {
+        "hour": 14,
+        "minute": 30,
+        "second": 0,
+        "name": "自备粮草",
+        "days": [
+            "mon",
+            "tue",
+            "wed",
+            "thu",
+            "fri"
+        ],
+        "is_active": true,
+        "id": "82b248f1-b4d7-4311-b3d3-7e8f347b4c22"
     }
 ]
