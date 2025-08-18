@@ -11,7 +11,7 @@
         "auto_start": false
     },
     "timers": {
-        "default_pomodoro": 30,
+        "default_pomodoro": 25,
         "default_short_break": 5,
         "default_long_break": 15,
         "auto_start_breaks": false
@@ -31,6 +31,6 @@
         "enabled": true,
         "hotkey": "F9",
         "exclude_fullscreen": true,
-        "debug_mode": false
+        " ": false
     }
 }

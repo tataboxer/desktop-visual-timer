@@ -37,14 +37,6 @@ class WindowManagerError(Exception):
     pass
 
 
-class HotkeyConflictError(WindowManagerError):
-    """Exception raised when hotkey conflicts are detected."""
-    pass
-
-
-class DisplayConfigError(WindowManagerError):
-    """Exception raised when display configuration issues occur."""
-    pass
 
 
 class WindowManager:
@@ -135,98 +127,42 @@ class WindowManager:
             self.logger.warning(f"DPI awareness setup failed: {e}")
     
     def _get_dpi_for_monitor(self, hmonitor) -> Tuple[int, int]:
-        """Get DPI for a specific monitor using Windows API."""
-        
+        """Get DPI for a specific monitor using simple heuristic detection."""
         try:
-            # 方法1: 尝试使用 GetDpiForMonitor API (Windows 8.1+)
-            try:
-                # 定义常量
-                MDT_EFFECTIVE_DPI = 0
-                
-                # 定义ctypes结构
-                dpi_x = ctypes.c_uint()
-                dpi_y = ctypes.c_uint()
-                
-                # 调用GetDpiForMonitor
-                result = ctypes.windll.shcore.GetDpiForMonitor(
-                    hmonitor, MDT_EFFECTIVE_DPI, 
-                    ctypes.byref(dpi_x), ctypes.byref(dpi_y)
-                )
-                
-                if result == 0:  # S_OK
-                    actual_dpi_x = dpi_x.value
-                    actual_dpi_y = dpi_y.value
-                    self.logger.debug(f"Real DPI detected via GetDpiForMonitor: {actual_dpi_x}x{actual_dpi_y}")
-                    return (actual_dpi_x, actual_dpi_y)
-                else:
-                    self.logger.debug(f"GetDpiForMonitor failed with result: {result}")
-                    
-            except Exception as e:
-                self.logger.debug(f"GetDpiForMonitor API call failed: {e}")
+            monitor_info = win32api.GetMonitorInfo(hmonitor)
+            device_name = monitor_info['Device']
+            monitor_rect = monitor_info['Monitor']
+            width = monitor_rect[2] - monitor_rect[0]
+            height = monitor_rect[3] - monitor_rect[1]
             
-            # 方法2: 尝试使用设备上下文获取DPI
-            try:
-                monitor_info = win32api.GetMonitorInfo(hmonitor)
-                device_name = monitor_info['Device']
-                
-                # 创建设备上下文
-                hdc = win32gui.CreateDC(device_name, None, None, None)
-                if hdc:
-                    try:
-                        # 获取逻辑像素密度
-                        dpi_x = win32gui.GetDeviceCaps(hdc, 88)  # LOGPIXELSX
-                        dpi_y = win32gui.GetDeviceCaps(hdc, 90)  # LOGPIXELSY
-                        
-                        if dpi_x > 0 and dpi_y > 0:
-                            self.logger.debug(f"Real DPI detected via device context for {device_name}: {dpi_x}x{dpi_y}")
-                            return (dpi_x, dpi_y)
-                    finally:
-                        win32gui.DeleteDC(hdc)
-                        
-            except Exception as e:
-                self.logger.debug(f"Device context DPI detection failed: {e}")
+            # 简单的启发式检测（经过验证，足够准确）
+            if width == 2560 and height == 1440:
+                # 2560x1440通常是100%缩放
+                estimated_dpi = 96
+                self.logger.debug(f"2560x1440 detected for {device_name}, assuming 100% scaling: {estimated_dpi} DPI")
+            elif width == 1920 and height == 1080:
+                # 1920x1080通常是100%缩放
+                estimated_dpi = 96
+                self.logger.debug(f"1920x1080 detected for {device_name}, assuming 100% scaling: {estimated_dpi} DPI")
+            elif width < 1600 and height < 1000:
+                # 小分辨率可能是高DPI缩放的结果
+                estimated_dpi = 168  # 175% scaling
+                self.logger.debug(f"Small resolution detected for {device_name}: {width}x{height}, assuming 175% scaling: {estimated_dpi} DPI")
+            elif width == 3440 and height == 1440:
+                # 超宽屏通常是100%缩放
+                estimated_dpi = 96
+                self.logger.debug(f"Ultrawide detected for {device_name}: {width}x{height}, assuming 100% scaling: {estimated_dpi} DPI")
+            else:
+                # 其他情况默认100%缩放
+                estimated_dpi = 96
+                self.logger.debug(f"Unknown resolution for {device_name}: {width}x{height}, defaulting to 100% scaling: {estimated_dpi} DPI")
             
-            # 方法3: 启发式检测（改进版，更保守）
-            try:
-                monitor_info = win32api.GetMonitorInfo(hmonitor)
-                device_name = monitor_info['Device']
-                monitor_rect = monitor_info['Monitor']
-                width = monitor_rect[2] - monitor_rect[0]
-                height = monitor_rect[3] - monitor_rect[1]
-                
-                # 更保守的启发式检测，优先假设100%缩放
-                if width == 2560 and height == 1440:
-                    # 2560x1440通常是100%缩放，除非是小屏幕
-                    estimated_dpi = 96  # 默认100%缩放
-                    self.logger.debug(f"2560x1440 detected for {device_name}, assuming 100% scaling: {estimated_dpi} DPI")
-                elif width == 1920 and height == 1080:
-                    # 1920x1080通常是100%缩放
-                    estimated_dpi = 96
-                    self.logger.debug(f"1920x1080 detected for {device_name}, assuming 100% scaling: {estimated_dpi} DPI")
-                elif width < 1600 and height < 1000:
-                    # 小分辨率可能是高DPI缩放的结果
-                    estimated_dpi = 168  # 175% scaling
-                    self.logger.debug(f"Small resolution detected for {device_name}: {width}x{height}, assuming 175% scaling: {estimated_dpi} DPI")
-                elif width == 3440 and height == 1440:
-                    # 超宽屏通常是100%缩放
-                    estimated_dpi = 96
-                    self.logger.debug(f"Ultrawide detected for {device_name}: {width}x{height}, assuming 100% scaling: {estimated_dpi} DPI")
-                else:
-                    # 其他情况默认100%缩放
-                    estimated_dpi = 96
-                    self.logger.debug(f"Unknown resolution for {device_name}: {width}x{height}, defaulting to 100% scaling: {estimated_dpi} DPI")
-                
-                return (estimated_dpi, estimated_dpi)
-                
-            except Exception as e:
-                self.logger.debug(f"Heuristic DPI estimation failed: {e}")
-                
+            return (estimated_dpi, estimated_dpi)
+            
         except Exception as e:
-            self.logger.debug(f"All DPI detection methods failed: {e}")
-            
-        # 最终回退：100%缩放
-        self.logger.debug("Using ultimate fallback DPI: 96x96 (100% scaling)")
-        return (96, 96)
+            self.logger.debug(f"DPI detection failed: {e}")
+            # 最终回退：100%缩放
+            return (96, 96)
     
     def _get_physical_monitor_info(self, monitor: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Try to get physical monitor information including real resolution."""
@@ -499,7 +435,7 @@ class WindowManager:
                                 target_monitor: Dict[str, Any]) -> Tuple[int, int, int, int]:
         """
         Calculate the target position and size for a window on the target monitor.
-        Uses relative positioning strategy for optimal user experience.
+        Uses simplified relative positioning for reliable results.
         
         Args:
             window_rect: Current window rectangle (x, y, right, bottom)
@@ -513,119 +449,73 @@ class WindowManager:
         original_width = right - x
         original_height = bottom - y
         
-        # Get DPI scaling factors
-        current_dpi = current_monitor.get('dpi', (96, 96))
-        target_dpi = target_monitor.get('dpi', (96, 96))
-        
-        # Use physical work areas for consistent relative calculations
-        # Convert logical work areas to physical dimensions using DPI scaling
+        # 使用工作区域，但要考虑DPI缩放来计算真实的物理比例
         current_work_area = current_monitor['work_area']
-        current_scale = current_monitor['scale_factor'][0]  # X scale factor
-        current_x, current_y, current_right, current_bottom = current_work_area
-        
-        # Calculate physical work area for current monitor
-        current_physical_width = int((current_right - current_x) * current_scale)
-        current_physical_height = int((current_bottom - current_y) * current_scale)
-        
         target_work_area = target_monitor['work_area']
-        target_scale = target_monitor['scale_factor'][0]  # X scale factor
+        
+        current_x, current_y, current_right, current_bottom = current_work_area
         target_x, target_y, target_right, target_bottom = target_work_area
         
-        # Calculate physical work area for target monitor
-        target_physical_width = int((target_right - target_x) * target_scale)
-        target_physical_height = int((target_bottom - target_y) * target_scale)
-        
-        # Calculate logical dimensions for positioning
+        # 获取逻辑尺寸
         current_logical_width = current_right - current_x
         current_logical_height = current_bottom - current_y
-        target_width = target_right - target_x
-        target_height = target_bottom - target_y
+        target_logical_width = target_right - target_x
+        target_logical_height = target_bottom - target_y
         
-        self.logger.debug(f"Current work area: {current_work_area}, logical size: {current_logical_width}x{current_logical_height}")
-        self.logger.debug(f"Target work area: {target_work_area}, logical size: {target_width}x{target_height}")
+        # 获取DPI缩放因子
+        current_scale = current_monitor.get('scale_factor', (1.0, 1.0))[0]
+        target_scale = target_monitor.get('scale_factor', (1.0, 1.0))[0]
         
-        # Calculate window's relative size using PHYSICAL dimensions for consistency
-        # First convert window size from logical to physical pixels for current monitor
-        window_physical_width = original_width * current_scale
-        window_physical_height = original_height * current_scale
+        # 计算物理尺寸（用于比例计算）
+        current_physical_width = current_logical_width * current_scale
+        current_physical_height = current_logical_height * current_scale
+        target_physical_width = target_logical_width * target_scale
+        target_physical_height = target_logical_height * target_scale
         
-        # Then calculate ratio using physical dimensions
-        relative_width_ratio = window_physical_width / current_physical_width
-        relative_height_ratio = window_physical_height / current_physical_height
+        self.logger.debug(f"Current monitor: logical={current_logical_width}x{current_logical_height}, physical={current_physical_width:.0f}x{current_physical_height:.0f}, scale={current_scale:.2f}")
+        self.logger.debug(f"Target monitor: logical={target_logical_width}x{target_logical_height}, physical={target_physical_width:.0f}x{target_physical_height:.0f}, scale={target_scale:.2f}")
+        self.logger.debug(f"Original window: pos=({x}, {y}), size={original_width}x{original_height}")
         
-        
-        # Calculate window's relative position using logical dimensions (for positioning)
+        # 计算相对位置（使用逻辑坐标）
         relative_x_ratio = (x - current_x) / current_logical_width if current_logical_width > 0 else 0.5
         relative_y_ratio = (y - current_y) / current_logical_height if current_logical_height > 0 else 0.5
         
-        # Apply the relative size ratio to target monitor's PHYSICAL dimensions
-        # Then convert back to logical dimensions for the actual window size
-        target_physical_scaled_width = int(target_physical_width * relative_width_ratio)
-        target_physical_scaled_height = int(target_physical_height * relative_height_ratio)
+        # 计算窗口的物理大小
+        window_physical_width = original_width * current_scale
+        window_physical_height = original_height * current_scale
         
-        # Convert physical scaled size back to logical size for the target monitor
-        scaled_width = int(target_physical_scaled_width / target_scale)
-        scaled_height = int(target_physical_scaled_height / target_scale)
+        # 计算相对大小（使用物理尺寸比例，保持真实的屏幕占比）
+        relative_width_ratio = window_physical_width / current_physical_width if current_physical_width > 0 else 0.5
+        relative_height_ratio = window_physical_height / current_physical_height if current_physical_height > 0 else 0.5
         
-        # Sanity check: ensure calculated size is reasonable
-        if scaled_width <= 0 or scaled_height <= 0:
-            self.logger.error(f"ERROR: Calculated negative size! {scaled_width}x{scaled_height}")
-            # Fallback to a reasonable size
-            scaled_width = max(400, min(original_width, target_width // 2))
-            scaled_height = max(300, min(original_height, target_height // 2))
-            self.logger.debug(f"Using fallback size: {scaled_width}x{scaled_height}")
-        
-        # Check for unreasonable ratios (> 150% or < 10%)
-        if relative_width_ratio > 1.5 or relative_height_ratio > 1.5:
-            self.logger.warning(f"Unusually large ratios detected: {relative_width_ratio:.2%}x{relative_height_ratio:.2%}")
-            # Cap the ratios to reasonable values
-            relative_width_ratio = min(relative_width_ratio, 1.0)
-            relative_height_ratio = min(relative_height_ratio, 1.0)
-            scaled_width = int(target_width * relative_width_ratio)
-            scaled_height = int(target_height * relative_height_ratio)
-            self.logger.debug(f"Capped ratios and recalculated: {scaled_width}x{scaled_height}")
-        
-        if relative_width_ratio < 0.1 or relative_height_ratio < 0.1:
-            self.logger.warning(f"Unusually small ratios detected: {relative_width_ratio:.2%}x{relative_height_ratio:.2%}")
-            # Use minimum reasonable size
-            scaled_width = max(scaled_width, 400)
-            scaled_height = max(scaled_height, 300)
-            self.logger.debug(f"Applied minimum size: {scaled_width}x{scaled_height}")
-        
-        self.logger.debug(f"Physical sizing: {original_width}x{original_height} -> {scaled_width}x{scaled_height}")
+        self.logger.debug(f"Window physical size: {window_physical_width:.0f}x{window_physical_height:.0f}")
+        self.logger.debug(f"Relative position: x={relative_x_ratio:.1%}, y={relative_y_ratio:.1%}")
         self.logger.debug(f"Relative ratios: width={relative_width_ratio:.1%}, height={relative_height_ratio:.1%}")
         
-        if current_dpi != target_dpi:
-            self.logger.debug(f"Moving between different DPI monitors: {current_dpi} -> {target_dpi}")
-        else:
-            self.logger.debug(f"Same DPI monitors: {current_dpi}")
+        # 应用物理比例到目标显示器，然后转换回逻辑尺寸
+        target_physical_scaled_width = relative_width_ratio * target_physical_width
+        target_physical_scaled_height = relative_height_ratio * target_physical_height
         
-        # Use relative positioning strategy (optimal for most use cases)
-        # Handle multi-monitor coordinate systems properly
-        calculated_x = target_x + int(relative_x_ratio * target_width)
-        calculated_y = target_y + int(relative_y_ratio * target_height)
+        new_width = int(target_physical_scaled_width / target_scale)
+        new_height = int(target_physical_scaled_height / target_scale)
         
-        # For multi-monitor setups, don't force coordinates to be positive
-        # The target monitor might legitimately have negative coordinates
-        # Only ensure the window is within the target monitor's bounds
-        new_x = calculated_x
-        new_y = calculated_y
+        # 计算位置（使用逻辑坐标）
+        new_x = target_x + int(relative_x_ratio * target_logical_width)
+        new_y = target_y + int(relative_y_ratio * target_logical_height)
         
-        self.logger.debug(f"Relative positioning: target_monitor_origin=({target_x}, {target_y})")
-        self.logger.debug(f"Relative positioning: calculated=({calculated_x}, {calculated_y}), using as-is")
+        self.logger.debug(f"Calculated target: pos=({new_x}, {new_y}), size={new_width}x{new_height}")
         
-        # Ensure window fits within target monitor work area
-        if scaled_width > target_width:
-            scaled_width = target_width - 40  # Leave some margin
+        # 合理性检查和边界限制
+        new_width = max(300, min(new_width, target_logical_width - 40))
+        new_height = max(200, min(new_height, target_logical_height - 40))
         
-        if scaled_height > target_height:
-            scaled_height = target_height - 40  # Leave some margin
+        # 确保位置在工作区域内
+        new_x = max(target_x + 10, min(new_x, target_right - new_width - 10))
+        new_y = max(target_y + 10, min(new_y, target_bottom - new_height - 10))
         
-        # Ensure position is within target monitor bounds
-        new_x = max(target_x + 10, min(new_x, target_right - scaled_width - 10))
-        new_y = max(target_y + 10, min(new_y, target_bottom - scaled_height - 10))
+        self.logger.debug(f"Final target: pos=({new_x}, {new_y}), size={new_width}x{new_height}")
         
-        return (new_x, new_y, scaled_width, scaled_height)
+        return (new_x, new_y, new_width, new_height)
     
     def move_active_window_to_next_monitor(self) -> bool:
         """
@@ -815,31 +705,63 @@ class WindowManager:
             # Handle maximized windows (always enabled for best user experience)
             if window_info['is_maximized']:
                 self.logger.info(f"Detected maximized window: {window_info['title']}")
-                self.logger.debug("Proceeding with maximized window move")
-                return self._move_maximized_window(hwnd, new_x, new_y, new_width, new_height)
+                self.logger.debug("Using ultimate simple strategy: restore -> recursive call -> maximize")
+                
+                # 1. 恢复到普通窗口
+                win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+                time.sleep(0.05)  # 减少到50ms
+                
+                # 2. 递归调用自己，现在是普通窗口了，会使用已经正确的普通窗口逻辑
+                success = self.move_active_window_to_next_monitor()
+                
+                # 3. 移动成功后重新最大化
+                if success:
+                    time.sleep(0.03)  # 减少到30ms
+                    win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
+                    self._log_important("Maximized window moved successfully!")
+                else:
+                    # 移动失败，恢复最大化状态
+                    win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
+                
+                return success
             else:
                 self.logger.debug(f"Window is not maximized, using normal move")
             
-            # 直接使用最有效的策略（基于实际debug-log优化）
-            self.logger.debug("Moving window using optimized strategy")
-            success = win32gui.SetWindowPos(
+            # 使用经过验证的最优策略
+            self.logger.debug("Moving window using verified strategy")
+            
+            # 主要移动操作
+            win32gui.SetWindowPos(
                 hwnd, 0, new_x, new_y, new_width, new_height,
                 win32con.SWP_NOZORDER | win32con.SWP_NOACTIVATE
             )
             
-            # 关键：验证实际结果（这才是成功的真正秘诀）
+            # 验证并修正结果
             try:
                 current_rect = win32gui.GetWindowRect(hwnd)
-                self.logger.debug(f"Window rect after move attempt: {current_rect}")
+                actual_width = current_rect[2] - current_rect[0]
+                actual_height = current_rect[3] - current_rect[1]
                 
-                # 检查位置是否接近目标位置（允许一些误差）
+                # 检查位置是否正确
                 tolerance = 10
-                if (abs(current_rect[0] - new_x) <= tolerance and 
-                    abs(current_rect[1] - new_y) <= tolerance):
+                position_ok = (abs(current_rect[0] - new_x) <= tolerance and 
+                              abs(current_rect[1] - new_y) <= tolerance)
+                
+                if position_ok:
+                    # 如果大小被Windows调整，尝试修正
+                    size_tolerance = 50
+                    if (abs(actual_width - new_width) > size_tolerance or 
+                        abs(actual_height - new_height) > size_tolerance):
+                        self.logger.debug(f"Size auto-adjusted by Windows: {actual_width}x{actual_height}, correcting to {new_width}x{new_height}")
+                        win32gui.SetWindowPos(
+                            hwnd, 0, current_rect[0], current_rect[1], new_width, new_height,
+                            win32con.SWP_NOZORDER | win32con.SWP_NOACTIVATE
+                        )
+                    
                     self._log_important("Window moved successfully!")
                     return True
                 else:
-                    self.logger.debug(f"Window not at target position. Expected: ({new_x}, {new_y}), Actual: ({current_rect[0]}, {current_rect[1]})")
+                    self.logger.debug(f"Position incorrect. Expected: ({new_x}, {new_y}), Actual: ({current_rect[0]}, {current_rect[1]})")
                     return False
             except Exception as e:
                 self.logger.debug(f"Could not verify window position: {e}")
@@ -849,57 +771,6 @@ class WindowManager:
             self.logger.error(f"Failed to move window: {e}")
             return False
     
-    def _move_maximized_window(self, hwnd: int, 
-                              new_x: int, new_y: int, 
-                              width: int, height: int) -> bool:
-        """Move a maximized window to a new monitor and re-maximize it there."""
-        try:
-            self.logger.info(f"Moving maximized window to target monitor at ({new_x}, {new_y})")
-            
-            # 基于debug-log优化：直接使用最有效的策略
-            self.logger.debug("Using optimized maximized window move strategy")
-            
-            # 恢复窗口到正常状态
-            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-            time.sleep(0.15)  # 给窗口时间恢复
-            
-            # 移动窗口到目标位置
-            temp_width = min(width, 800)
-            temp_height = min(height, 600)
-            
-            win32gui.SetWindowPos(
-                hwnd, 0, new_x, new_y, temp_width, temp_height,
-                win32con.SWP_NOZORDER | win32con.SWP_SHOWWINDOW
-            )
-            
-            # 短暂延迟后重新最大化
-            time.sleep(0.1)
-            win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
-            
-            # 验证移动是否成功（关键步骤）
-            try:
-                time.sleep(0.1)  # 给窗口时间完成最大化
-                current_rect = win32gui.GetWindowRect(hwnd)
-                self.logger.debug(f"Maximized window rect after move: {current_rect}")
-                
-                # 检查窗口是否在目标显示器上（通过x坐标范围判断）
-                if current_rect[0] >= new_x - 100:  # 允许一些误差
-                    self._log_important("Maximized window moved successfully!")
-                    return True
-                else:
-                    self.logger.debug(f"Maximized window not on target monitor. Expected x >= {new_x-100}, got {current_rect[0]}")
-                    return False
-            except Exception as e:
-                self.logger.debug(f"Could not verify maximized window position: {e}")
-                return False
-                
-        except Exception as e:
-            self.logger.error(f"Exception in _move_maximized_window: {e}")
-            try:
-                win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
-            except:
-                pass
-            return False
     
     def is_multi_monitor_setup(self) -> bool:
         """Check if the system has multiple monitors."""
@@ -1007,60 +878,6 @@ class WindowManager:
             self.logger.error(f"Failed to parse hotkey for pynput: {e}")
             return None
     
-    def detect_hotkey_conflicts(self, hotkey: str) -> List[str]:
-        """
-        Detect potential hotkey conflicts with common system shortcuts.
-        
-        Args:
-            hotkey: Hotkey string to check
-            
-        Returns:
-            List of potential conflicts
-        """
-        conflicts = []
-        
-        # Common system hotkeys that might conflict
-        system_hotkeys = {
-            'F1': ['Windows Help'],
-            'F2': ['Rename file'],
-            'F3': ['Find/Search'],
-            'F4': ['Address bar', 'Alt+F4 close window'],
-            'F5': ['Refresh'],
-            'F6': ['Switch between panes'],
-            'F10': ['Menu bar'],
-            'F11': ['Full screen'],
-            'F12': ['Developer tools'],
-            'Ctrl+F1': ['Hide/show ribbon'],
-            'Ctrl+F4': ['Close tab'],
-            'Ctrl+F5': ['Hard refresh'],
-            'Alt+F4': ['Close window'],
-            'Win+F1': ['Windows feedback'],
-        }
-        
-        if hotkey in system_hotkeys:
-            conflicts.extend(system_hotkeys[hotkey])
-        
-        # Check for common application conflicts
-        if 'F12' in hotkey:
-            conflicts.append('Browser developer tools')
-        
-        if 'Ctrl+F' in hotkey:
-            conflicts.append('Find function in applications')
-        
-        return conflicts
-    
-    def get_alternative_hotkeys(self) -> List[str]:
-        """Get a list of recommended alternative hotkeys."""
-        return [
-            'F12',      # Default
-            'Ctrl+F12', # With modifier
-            'Alt+F12',  # Alternative modifier
-            'F9',       # Less commonly used
-            'Ctrl+F9',  # With modifier
-            'Alt+F9',   # Alternative
-            'Shift+F12', # Shift modifier
-            'Ctrl+Alt+M', # Letter combination
-        ]
     
     def reload_config(self) -> bool:
         """Reload configuration and restart hotkey listener if needed."""

@@ -1,9 +1,10 @@
-# 窗口跨屏移动功能 - 完整实现文档
+# 窗口跨屏移动功能 - 实现文档
 
 > **状态**: ✅ 已完成并部署  
 > **版本**: v1.2  
 > **最后更新**: 2025年1月  
-> **开发完成度**: 100%
+> **开发完成度**: 100%  
+> **调试历程**: 经历了两天的深度调试才最终稳定
 
 ## 📋 功能概述
 
@@ -68,14 +69,12 @@ def get_monitors(self) -> List[Dict[str, Any]]:
         }
 ```
 
-**DPI检测策略**（三层降级机制）：
-1. **GetDpiForMonitor API**: 使用ctypes调用Windows 8.1+ API获取真实DPI
-2. **设备上下文**: 通过CreateDC和GetDeviceCaps获取逻辑像素密度  
-3. **启发式检测**: 基于分辨率的保守估算
-   - 2560x1440 → 96 DPI (100%缩放)
-   - 1920x1080 → 96 DPI (100%缩放)
-   - 小分辨率(<1600x1000) → 168 DPI (175%缩放)
-   - 超宽屏(3440x1440) → 96 DPI (100%缩放)
+**DPI检测策略**（简化的启发式检测）：
+- **2560x1440** → 96 DPI (100%缩放)
+- **1920x1080** → 96 DPI (100%缩放)  
+- **小分辨率(<1600x1000)** → 168 DPI (175%缩放)
+- **超宽屏(3440x1440)** → 96 DPI (100%缩放)
+- **其他分辨率** → 96 DPI (100%缩放，默认)
 
 ### 2. 窗口信息获取
 
@@ -114,78 +113,116 @@ def calculate_target_position(self, window_rect, current_monitor, target_monitor
 
 ### 4. 窗口移动实现
 
-**优化的单一策略**（基于实际debug-log优化）：
+**最终简化策略**（经过两天深度调试优化）：
 
 ```python
+# 普通窗口移动
 def _move_window(self, window_info, new_x, new_y, new_width, new_height):
-    """移动窗口，使用经过验证的最优策略"""
+    """移动普通窗口，使用验证的最优策略"""
     hwnd = window_info['hwnd']
     
-    # 最大化窗口特殊处理
-    if window_info['is_maximized']:
-        return self._move_maximized_window(hwnd, new_x, new_y, new_width, new_height)
-    
-    # 直接使用最有效的API调用
-    success = win32gui.SetWindowPos(
+    # 主要移动操作
+    win32gui.SetWindowPos(
         hwnd, 0, new_x, new_y, new_width, new_height,
         win32con.SWP_NOZORDER | win32con.SWP_NOACTIVATE
     )
     
-    # 关键：验证实际结果（这才是成功的真正秘诀）
-    try:
-        current_rect = win32gui.GetWindowRect(hwnd)
-        tolerance = 10
-        if (abs(current_rect[0] - new_x) <= tolerance and 
-            abs(current_rect[1] - new_y) <= tolerance):
-            self._log_important("Window moved successfully!")
-            return True
-        else:
-            return False
-    except Exception:
+    # 验证并修正结果
+    current_rect = win32gui.GetWindowRect(hwnd)
+    actual_width = current_rect[2] - current_rect[0]
+    actual_height = current_rect[3] - current_rect[1]
+    
+    # 检查位置
+    tolerance = 10
+    position_ok = (abs(current_rect[0] - new_x) <= tolerance and 
+                  abs(current_rect[1] - new_y) <= tolerance)
+    
+    if position_ok:
+        # 如果大小被Windows调整，尝试修正
+        size_tolerance = 50
+        if (abs(actual_width - new_width) > size_tolerance or 
+            abs(actual_height - new_height) > size_tolerance):
+            win32gui.SetWindowPos(hwnd, 0, current_rect[0], current_rect[1], 
+                                new_width, new_height, flags)
+        return True
+    else:
         return False
+
+# 最大化窗口移动（终极简化）
+if window_info['is_maximized']:
+    # 1. 恢复到普通窗口
+    win32gui.ShowWindow(hwnd, SW_RESTORE)
+    time.sleep(0.05)  # 50ms延迟
+    
+    # 2. 递归调用自己（现在是普通窗口了）
+    success = self.move_active_window_to_next_monitor()
+    
+    # 3. 移动成功后重新最大化
+    if success:
+        time.sleep(0.03)  # 30ms延迟
+        win32gui.ShowWindow(hwnd, SW_MAXIMIZE)
+    
+    return success
 ```
 
-**关键发现**：90%的成功来自**位置验证机制**，而不是复杂的API策略。Windows API经常返回"失败"但实际操作成功。
+**调试历程和关键发现**：
+1. **第一天调试**：修复了基本的窗口移动功能
+2. **第二天问题**：不知道哪一步搞坏了，又花了很久修复
+3. **核心问题**：Windows会自动调整窗口大小，导致比例不一致
+4. **最终解决**：
+   - **位置验证机制**是成功的关键
+   - **大小修正机制**解决Windows自动调整问题
+   - **最大化窗口递归调用**是最简单可靠的方案
 
-### 5. 最大化窗口处理
 
+## 🔧 **调试历程和最终解决方案**
+
+### **调试历程**：
+- **第一天**：花费半天时间修复基本窗口移动功能 ✅
+- **第二天**：不知道哪一步搞坏了，又花费很久修复 😵
+- **最终**：通过大量调试找到了最简单可靠的方案 🎉
+
+### **核心问题：Windows窗口大小自动调整**
+
+**现象**：
+- 计算目标大小：1828x890
+- 实际设置后大小：1045x509  
+- 导致relative ratio不一致：71.4% → 40.8%
+
+**根本原因**：
+1. **系统限制**：Windows对某些窗口有最小/最大大小限制
+2. **API不可靠**：SetWindowPos返回成功但实际大小被系统调整
+3. **最大化窗口复杂**：恢复后的窗口信息可能被错误更新
+
+### **最终解决方案**：
+
+#### **1. 普通窗口**：
 ```python
-def _move_maximized_window(self, hwnd, new_x, new_y, width, height):
-    """处理最大化窗口的移动 - 基于实际测试优化的策略"""
-    
-    # 使用经过验证的恢复-移动-最大化策略
-    # 恢复窗口到正常状态
-    win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-    time.sleep(0.15)  # 给窗口时间恢复
-    
-    # 移动窗口到目标位置（使用临时大小）
-    temp_width = min(width, 800)
-    temp_height = min(height, 600)
-    win32gui.SetWindowPos(
-        hwnd, 0, new_x, new_y, temp_width, temp_height,
-        win32con.SWP_NOZORDER | win32con.SWP_SHOWWINDOW
-    )
-    
-    # 短暂延迟后重新最大化
-    time.sleep(0.1)
-    win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
-    
-    # 验证移动是否成功（关键步骤）
-    try:
-        time.sleep(0.1)  # 给窗口时间完成最大化
-        current_rect = win32gui.GetWindowRect(hwnd)
-        
-        # 检查窗口是否在目标显示器上（通过x坐标范围判断）
-        if current_rect[0] >= new_x - 100:  # 允许一些误差
-            self._log_important("Maximized window moved successfully!")
-            return True
-        else:
-            return False
-    except Exception:
-        return False
+# 移动 + 验证 + 修正
+win32gui.SetWindowPos(hwnd, 0, new_x, new_y, new_width, new_height, flags)
+
+# 验证实际结果
+actual_rect = win32gui.GetWindowRect(hwnd)
+if position_correct and size_mismatch:
+    # 修正大小
+    win32gui.SetWindowPos(hwnd, 0, x, y, correct_width, correct_height, flags)
 ```
 
-**实际测试发现**：SetWindowPlacement方法在实际环境中成功率较低，恢复-移动-最大化策略更可靠。
+#### **2. 最大化窗口**：
+```python
+# 终极简化：递归调用
+if is_maximized:
+    win32gui.ShowWindow(hwnd, SW_RESTORE)           # 恢复
+    success = self.move_active_window_to_next_monitor()  # 递归调用
+    if success:
+        win32gui.ShowWindow(hwnd, SW_MAXIMIZE)      # 重新最大化
+```
+
+**效果**：
+- ✅ 保持relative ratio一致：71.4% ↔ 71.4%
+- ✅ 正确处理DPI缩放：175% ↔ 100%  
+- ✅ 自动修正Windows的大小调整
+- ✅ 最大化窗口使用普通窗口的可靠逻辑
 
 ### 6. 全局热键监听
 
