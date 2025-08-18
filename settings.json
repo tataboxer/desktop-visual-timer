@@ -24,7 +24,8 @@
         "enabled": true,
         "type": "screen_flash",
         "duration": 1.5,
-        "intensity": "low"
+        "intensity": "medium",
+        "color_scheme": "green_healthy"
     },
     "window_management": {
         "enabled": true,

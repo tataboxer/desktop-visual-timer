@@ -81,12 +81,16 @@ class ScreenEffectsManager:
         
         settings = intensity_settings.get(intensity, intensity_settings["medium"])
         
+        # 获取配色方案
+        color_scheme = self.settings_manager.get("visual_effects.color_scheme", "classic_red") if self.settings_manager else "classic_red"
+        colors = self._get_border_colors(color_scheme)
+        
         # 创建全屏透明窗口
         self.effect_window = tk.Toplevel()
         self.effect_window.attributes('-fullscreen', True)
         self.effect_window.attributes('-topmost', True)
         self.effect_window.attributes('-alpha', settings["alpha"])
-        self.effect_window.configure(bg='red')
+        self.effect_window.configure(bg=colors["primary"])
         self.effect_window.overrideredirect(True)
         
         # 获取屏幕尺寸
@@ -97,19 +101,19 @@ class ScreenEffectsManager:
         border_width = settings["border_width"]
         
         # 上边框
-        top_frame = tk.Frame(self.effect_window, bg='red', height=border_width)
+        top_frame = tk.Frame(self.effect_window, bg=colors["primary"], height=border_width)
         top_frame.pack(side=tk.TOP, fill=tk.X)
         
         # 下边框
-        bottom_frame = tk.Frame(self.effect_window, bg='red', height=border_width)
+        bottom_frame = tk.Frame(self.effect_window, bg=colors["primary"], height=border_width)
         bottom_frame.pack(side=tk.BOTTOM, fill=tk.X)
         
         # 左边框
-        left_frame = tk.Frame(self.effect_window, bg='red', width=border_width)
+        left_frame = tk.Frame(self.effect_window, bg=colors["primary"], width=border_width)
         left_frame.pack(side=tk.LEFT, fill=tk.Y)
         
         # 右边框
-        right_frame = tk.Frame(self.effect_window, bg='red', width=border_width)
+        right_frame = tk.Frame(self.effect_window, bg=colors["primary"], width=border_width)
         right_frame.pack(side=tk.RIGHT, fill=tk.Y)
         
         # 中间透明区域
@@ -128,10 +132,10 @@ class ScreenEffectsManager:
             
             if flash_cycle < 0.5:
                 alpha = settings["max_alpha"]  # 使用强度设置的最大透明度
-                color = 'red'
+                color = colors["primary"]
             else:
                 alpha = settings["alpha"] * 0.5  # 暗淡状态
-                color = 'orange'
+                color = colors["secondary"]
             
             try:
                 self.effect_window.attributes('-alpha', alpha)
@@ -154,11 +158,15 @@ class ScreenEffectsManager:
         
         settings = intensity_settings.get(intensity, intensity_settings["medium"])
         
+        # 获取配色方案
+        color_scheme = self.settings_manager.get("visual_effects.color_scheme", "classic_red") if self.settings_manager else "classic_red"
+        colors = self._get_screen_colors(color_scheme)
+        
         self.effect_window = tk.Toplevel()
         self.effect_window.attributes('-fullscreen', True)
         self.effect_window.attributes('-topmost', True)
         self.effect_window.attributes('-alpha', settings["base_alpha"])
-        self.effect_window.configure(bg='white')
+        self.effect_window.configure(bg=colors["primary"])
         self.effect_window.overrideredirect(True)
         
         start_time = time.time()
@@ -170,10 +178,10 @@ class ScreenEffectsManager:
             
             if flash_cycle < 0.3:
                 alpha = settings["max_alpha"]
-                color = 'white'
+                color = colors["primary"]
             else:
                 alpha = settings["base_alpha"]
-                color = 'lightblue'
+                color = colors["secondary"]
             
             try:
                 self.effect_window.attributes('-alpha', alpha)
@@ -187,3 +195,25 @@ class ScreenEffectsManager:
     def is_effect_running(self) -> bool:
         """检查是否有效果正在运行"""
         return self.is_running
+    
+    def _get_border_colors(self, color_scheme: str):
+        """获取边缘闪光的配色方案"""
+        color_schemes = {
+            "classic_red": {"primary": "red", "secondary": "orange"},
+            "blue_professional": {"primary": "#1E3A8A", "secondary": "#3B82F6"},  # 深蓝 -> 天蓝
+            "green_healthy": {"primary": "#166534", "secondary": "#22C55E"},      # 森林绿 -> 浅绿
+            "purple_elegant": {"primary": "#6B21A8", "secondary": "#A855F7"},     # 深紫 -> 淡紫
+            "yellow_energetic": {"primary": "#D97706", "secondary": "#FCD34D"}    # 金黄 -> 浅黄
+        }
+        return color_schemes.get(color_scheme, color_schemes["classic_red"])
+    
+    def _get_screen_colors(self, color_scheme: str):
+        """获取全屏闪烁的配色方案"""
+        color_schemes = {
+            "classic_red": {"primary": "white", "secondary": "lightblue"},
+            "blue_professional": {"primary": "#DBEAFE", "secondary": "#BFDBFE"},  # 浅蓝 -> 浅青
+            "green_healthy": {"primary": "#DCFCE7", "secondary": "#BBF7D0"},      # 浅绿 -> 薄荷绿
+            "purple_elegant": {"primary": "#F3E8FF", "secondary": "#E9D5FF"},     # 浅紫 -> 淡粉
+            "yellow_energetic": {"primary": "#FEF3C7", "secondary": "#FDE68A"}    # 浅橙 -> 浅粉
+        }
+        return color_schemes.get(color_scheme, color_schemes["classic_red"])

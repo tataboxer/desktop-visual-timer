@@ -46,7 +46,7 @@ class SettingsWindow:
             
         self.window = tk.Toplevel(self.parent)
         self.window.title("应用设置")
-        self.window.geometry("500x680")  # 增加高度从600到750
+        self.window.geometry("500x650")  # 设置合适的高度
         self.window.configure(bg=COLORS['bg_primary'])
         self.window.resizable(False, False)
         
@@ -115,7 +115,7 @@ class SettingsWindow:
         
         # Create notebook for tabs
         notebook = ttk.Notebook(main_frame)
-        notebook.configure(height=330)  # 设置固定高度
+        notebook.configure(height=280)  # 设置固定高度
         notebook.pack(fill=tk.X, pady=(0, SPACING['md']))  # 移除expand=True，只水平填充
         
         # Notification settings tab
@@ -423,6 +423,41 @@ class SettingsWindow:
         
         type_combo.bind('<<ComboboxSelected>>', lambda e: self._save_visual_effects_settings())
         
+        # Color scheme selection
+        color_frame = tk.Frame(content, bg=COLORS['bg_secondary'])
+        color_frame.pack(fill=tk.X, pady=(0, SPACING['md']))
+        
+        tk.Label(color_frame, text="配色方案:",
+                font=('Segoe UI', 10),
+                fg=COLORS['text_primary'], bg=COLORS['bg_secondary']).pack(side=tk.LEFT)
+        
+        self.color_scheme_var = tk.StringVar(
+            value=self.settings_manager.get("visual_effects.color_scheme", "classic_red")
+        )
+        color_schemes = [
+            ("经典红色", "classic_red"),
+            ("蓝色专业", "blue_professional"),
+            ("绿色健康", "green_healthy"),
+            ("紫色优雅", "purple_elegant"),
+            ("黄色活力", "yellow_energetic")
+        ]
+        
+        color_combo = ttk.Combobox(color_frame, textvariable=self.color_scheme_var,
+                                  values=[desc for desc, _ in color_schemes],
+                                  state='readonly', width=15)
+        color_combo.pack(side=tk.RIGHT)
+        
+        # Map display names to internal values
+        self.color_scheme_mapping = {desc: value for desc, value in color_schemes}
+        self.reverse_color_scheme_mapping = {value: desc for desc, value in color_schemes}
+        
+        # Set current selection
+        current_scheme = self.settings_manager.get("visual_effects.color_scheme", "classic_red")
+        if current_scheme in self.reverse_color_scheme_mapping:
+            color_combo.set(self.reverse_color_scheme_mapping[current_scheme])
+        
+        color_combo.bind('<<ComboboxSelected>>', lambda e: self._save_visual_effects_settings())
+        
         # Effect duration
         duration_frame = tk.Frame(content, bg=COLORS['bg_secondary'])
         duration_frame.pack(fill=tk.X, pady=(0, SPACING['md']))
@@ -477,18 +512,7 @@ class SettingsWindow:
                            relief='flat', cursor='hand2',
                            padx=SPACING['md'], pady=SPACING['sm'],
                            command=self._test_visual_effect)
-        test_btn.pack(pady=(SPACING['md'], 0))
-        
-        # Effects explanation
-        info_text = """视觉效果说明：
-• 边缘闪光：屏幕边缘细红线闪烁，不遮挡内容
-• 全屏闪烁：整个屏幕轻微闪烁提醒"""
-        
-        info_label = tk.Label(content, text=info_text,
-                             font=('Segoe UI', 9),
-                             fg=COLORS['text_secondary'], bg=COLORS['bg_secondary'],
-                             justify=tk.LEFT, wraplength=400)
-        info_label.pack(anchor="w", pady=(SPACING['lg'], 0))
+        test_btn.pack(pady=(SPACING['sm'], 0))
         
     def _save_notification_settings(self):
         """Saves notification settings."""
@@ -560,6 +584,14 @@ class SettingsWindow:
                 intensity = "medium"  # fallback
             self.settings_manager.set("visual_effects.intensity", intensity)
             
+            # Get color scheme
+            selected_scheme_display = self.color_scheme_var.get()
+            if selected_scheme_display in self.color_scheme_mapping:
+                color_scheme = self.color_scheme_mapping[selected_scheme_display]
+            else:
+                color_scheme = "classic_red"  # fallback
+            self.settings_manager.set("visual_effects.color_scheme", color_scheme)
+            
             if self.on_settings_changed:
                 self.on_settings_changed("visual_effects")
         except ValueError:
@@ -573,9 +605,9 @@ class SettingsWindow:
             # Create temporary effects manager with current settings
             effects_manager = ScreenEffectsManager(self.settings_manager)
             
-            # Get current settings
+            # Get current settings - use the actual duration from settings
             effect_type = self.settings_manager.get("visual_effects.type", "border_flash")
-            duration = min(3.0, self.settings_manager.get("visual_effects.duration", 5.0))  # Limit test duration
+            duration = self.settings_manager.get("visual_effects.duration", 5.0)
             
             # Show test effect
             effects_manager.show_alarm_effect(effect_type, duration)
