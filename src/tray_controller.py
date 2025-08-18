@@ -81,9 +81,9 @@ class TrayController:
         if self.is_flashing:
             # When an alarm is flashing, make "Cancel Alarm" the default action
             return pystray.Menu(
-                pystray.MenuItem("Cancel Alarm", self._cancel_alarm, default=True),
-                pystray.MenuItem("Show", self._show_and_stop_flashing),
-                pystray.MenuItem("Exit", self._on_exit)
+                pystray.MenuItem("取消闹钟", self._cancel_alarm, default=True),
+                pystray.MenuItem("显示窗口", self._show_and_stop_flashing),
+                pystray.MenuItem("退出", self._on_exit)
             )
         else:
             # Normal menu when no alarm is flashing
@@ -99,13 +99,13 @@ class TrayController:
                 short_break_minutes = 5
             
             return pystray.Menu(
-                pystray.MenuItem("Show/Hide Window", self._show_and_stop_flashing, default=True),
+                pystray.MenuItem("显示/隐藏窗口", self._show_and_stop_flashing, default=True),
                 pystray.Menu.SEPARATOR,
-                pystray.MenuItem(f"🍅 Focus {pomodoro_minutes} min", lambda: self._start_quick_timer(pomodoro_minutes, "Pomodoro Focus")),
-                pystray.MenuItem(f"🚶 Break {long_break_minutes} min", lambda: self._start_quick_timer(long_break_minutes, "Long Break")),
-                pystray.MenuItem(f"☕ Break {short_break_minutes} min", lambda: self._start_quick_timer(short_break_minutes, "Short Break")),
+                pystray.MenuItem(f"🍅 专注 {pomodoro_minutes}分钟", lambda: self._start_quick_timer(pomodoro_minutes, f"专注 {pomodoro_minutes}分钟")),
+                pystray.MenuItem(f"🚶 长休息 {long_break_minutes}分钟", lambda: self._start_quick_timer(long_break_minutes, f"长休息 {long_break_minutes}分钟")),
+                pystray.MenuItem(f"☕ 短休息 {short_break_minutes}分钟", lambda: self._start_quick_timer(short_break_minutes, f"短休息 {short_break_minutes}分钟")),
                 pystray.Menu.SEPARATOR,
-                pystray.MenuItem("Exit", self._on_exit)
+                pystray.MenuItem("退出", self._on_exit)
             )
 
     def _on_exit(self):

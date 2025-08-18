@@ -598,7 +598,7 @@ class AppGUI(tk.Tk):
                     timer_item.pack(anchor="w", pady=(0, SPACING['xs']))
                     
                     # Timer info with better formatting
-                    timer_name = timer_data['name'][:6] + "..." if len(timer_data['name']) > 6 else timer_data['name']
+                    timer_name = timer_data['name'][:8] + "..." if len(timer_data['name']) > 8 else timer_data['name']
                     timer_text = f"{timer_name}: {minutes:02d}:{seconds:02d}"
                     timer_label = tk.Label(timer_item, text=timer_text, 
                                          font=('Segoe UI', 9),
@@ -651,31 +651,31 @@ class AppGUI(tk.Tk):
             fg='white', bg=COLORS['success'],
             relief='flat', cursor='hand2',
             padx=SPACING['md'], pady=SPACING['sm'],
-            command=lambda: self._start_quick_timer(pomodoro_minutes, "番茄工作法")
+            command=lambda: self._start_quick_timer(pomodoro_minutes, f"专注 {pomodoro_minutes}分钟")
         )
         pomodoro_btn.pack(side=tk.LEFT, padx=(0, SPACING['sm']))
         
         # Long break button
         long_break_btn = tk.Button(
             self.timer_buttons_frame, 
-            text=f"🚶 休息 {long_break_minutes}分钟", 
+            text=f"🚶 长休息 {long_break_minutes}分钟", 
             font=('Segoe UI', 9),
-            fg=COLORS['text_primary'], bg=COLORS['border_light'],
+            fg='white', bg=COLORS['warning'],
             relief='flat', cursor='hand2',
             padx=SPACING['md'], pady=SPACING['sm'],
-            command=lambda: self._start_quick_timer(long_break_minutes, "长休息")
+            command=lambda: self._start_quick_timer(long_break_minutes, f"长休息 {long_break_minutes}分钟")
         )
         long_break_btn.pack(side=tk.LEFT, padx=(0, SPACING['sm']))
         
         # Short break button
         short_break_btn = tk.Button(
             self.timer_buttons_frame, 
-            text=f"☕ 休息 {short_break_minutes}分钟", 
+            text=f"☕ 短休息 {short_break_minutes}分钟", 
             font=('Segoe UI', 9),
-            fg=COLORS['text_primary'], bg=COLORS['border_light'],
+            fg='white', bg=COLORS['accent'],
             relief='flat', cursor='hand2',
             padx=SPACING['md'], pady=SPACING['sm'],
-            command=lambda: self._start_quick_timer(short_break_minutes, "短休息")
+            command=lambda: self._start_quick_timer(short_break_minutes, f"短休息 {short_break_minutes}分钟")
         )
         short_break_btn.pack(side=tk.LEFT)
     
