@@ -1,18 +1,18 @@
 [
     {
         "hour": 9,
-        "minute": 20,
+        "minute": 25,
         "second": 0,
         "name": "自备粮草",
         "days": [
-            "mon",
-            "tue",
-            "wed",
-            "thu",
-            "fri"
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday"
         ],
         "is_active": true,
-        "id": "cfbca1bc-5a21-4b36-bc45-5695ab644b19"
+        "id": "1e7cfc8a-cec7-42cc-81f0-23f4b7cbdc18"
     },
     {
         "hour": 14,
@@ -20,13 +20,13 @@
         "second": 0,
         "name": "自备粮草",
         "days": [
-            "mon",
-            "tue",
-            "wed",
-            "thu",
-            "fri"
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday"
         ],
         "is_active": true,
-        "id": "82b248f1-b4d7-4311-b3d3-7e8f347b4c22"
+        "id": "51a4b151-1511-4273-98dd-e268183dd9ad"
     }
 ]

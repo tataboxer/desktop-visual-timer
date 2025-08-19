@@ -75,23 +75,22 @@ class TimerEngine:
             job_time = f"{alarm.get('hour', 0):02d}:{alarm.get('minute', 0):02d}"
             days = alarm.get('days', [])
             
-            job = None
             if not days: # One-time alarm
                 job = self.schedule.every().day.at(job_time)
+                if job:
+                    job.do(self.trigger_callback, alarm)
             else: # Recurring alarm
                 for day in days:
                     if hasattr(self.schedule.every(), day.lower()):
                         job = getattr(self.schedule.every(), day.lower()).at(job_time)
-
-            if job:
-                # Use a lambda to pass the alarm object to the callback
-                job.do(self.trigger_callback, alarm)
+                        if job:
+                            job.do(self.trigger_callback, alarm)
     
     def _check_second_level_alarms(self):
         """Check and trigger alarms that require second-level precision."""
         now = datetime.now()
         current_time_key = f"{now.hour:02d}:{now.minute:02d}:{now.second:02d}"
-        current_day = now.strftime('%a').lower()
+        current_day = now.strftime('%A').lower()  # Use full day name (monday, tuesday, etc.)
         
         for alarm in self.second_level_alarms[:]:  # Create a copy to iterate safely
             if not alarm.get('is_active', False):

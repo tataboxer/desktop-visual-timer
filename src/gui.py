@@ -294,8 +294,8 @@ class AppGUI(tk.Tk):
                               command=self._save_alarm)
         save_button.pack(side=tk.RIGHT, padx=(0, SPACING['sm']))
         
-        # Store day mapping for later use
-        self.day_mapping = {"一": "mon", "二": "tue", "三": "wed", "四": "thu", "五": "fri", "六": "sat", "日": "sun"}
+        # Store day mapping for later use - use full names for schedule library compatibility
+        self.day_mapping = {"一": "monday", "二": "tuesday", "三": "wednesday", "四": "thursday", "五": "friday", "六": "saturday", "日": "sunday"}
         self.reverse_day_mapping = {v: k for k, v in self.day_mapping.items()}
         
         # Bottom section - Quick Timer (Card style)
@@ -429,7 +429,12 @@ class AppGUI(tk.Tk):
             
             # Alarm type and repeat info with better styling
             if alarm.get('days', []):
-                days_chinese = [self.reverse_day_mapping.get(day, day) for day in alarm['days']]
+                # Create a mapping from full English names back to Chinese
+                english_to_chinese = {
+                    "monday": "一", "tuesday": "二", "wednesday": "三", "thursday": "四",
+                    "friday": "五", "saturday": "六", "sunday": "日"
+                }
+                days_chinese = [english_to_chinese.get(day, day) for day in alarm['days']]
                 type_text = f"重复 • {' '.join(days_chinese)}"
             else:
                 type_text = "单次"
