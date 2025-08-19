@@ -158,7 +158,7 @@ desktop-visual-timer/
 │   ├── timer_engine.py         # 定时器引擎
 │   ├── data_manager.py         # 数据管理
 │   ├── tray_controller.py      # 系统托盘控制
-│   ├── notification_manager.py # 通知管理
+│   ├── alarm_popup.py          # 弹窗通知组件
 │   ├── settings_manager.py     # 设置管理
 │   ├── settings_window.py      # 设置界面
 │   ├── screen_effects.py       # 屏幕视觉效果
@@ -226,7 +226,7 @@ desktop-visual-timer/
 - **TimerEngine (timer_engine.py)**：高精度定时器引擎，支持秒级调度
 - **DataManager (data_manager.py)**：JSON文件数据持久化管理
 - **TrayController (tray_controller.py)**：系统托盘集成和交互控制
-- **NotificationManager (notification_manager.py)**：跨平台系统通知管理
+- **AlarmPopup (alarm_popup.py)**：自定义弹窗通知组件
 
 ### 设计特点
 - **模块化架构**：各组件职责清晰，低耦合高内聚
@@ -311,7 +311,6 @@ python src/main.py
 - [pystray](https://github.com/moses-palmer/pystray) - 系统托盘集成
 - [schedule](https://github.com/dbader/schedule) - 定时任务调度
 - [Pillow](https://github.com/python-pillow/Pillow) - 图像处理
-- [notify-py](https://github.com/ms7m/notify-py) - 跨平台通知系统
 - [pywin32](https://github.com/mhammond/pywin32) - Windows API支持
 - [pynput](https://github.com/moses-palmer/pynput) - 全局热键监听
 
@@ -319,7 +318,14 @@ python src/main.py
 
 ## 📋 版本历史
 
-### v1.0.0 (当前版本)
+### v1.2.0 (当前版本)
+- ✅ **新增自定义弹窗通知**：替代Toast通知，温和的淡蓝色设计
+- ✅ **左右布局优化**：左侧大图标(128x128)，右侧文字信息
+- ✅ **人性化交互**：非模态窗口，可稍后处理，30秒自动关闭
+- ✅ **架构简化**：移除NotificationManager，直接使用弹窗组件
+- ✅ **设置界面更新**："启用系统通知"改为"启用弹窗通知"
+
+### v1.0.0
 - ✅ 完整的闹钟和倒计时器功能
 - ✅ 专业级UI设计系统
 - ✅ 系统托盘集成和通知

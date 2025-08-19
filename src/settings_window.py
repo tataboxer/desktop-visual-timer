@@ -168,7 +168,7 @@ class SettingsWindow:
         self.notifications_enabled_var = tk.BooleanVar(
             value=self.settings_manager.get("notifications.enabled", True)
         )
-        notifications_cb = tk.Checkbutton(content, text="启用系统通知",
+        notifications_cb = tk.Checkbutton(content, text="启用弹窗通知",
                                         variable=self.notifications_enabled_var,
                                         font=('Segoe UI', 10),
                                         bg=COLORS['bg_secondary'],

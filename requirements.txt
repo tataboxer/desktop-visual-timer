@@ -4,7 +4,6 @@ Pillow==10.0.0           # 图像处理 (GUI图标、托盘图标)
 
 # 定时和通知
 schedule==1.2.0          # 定时任务调度
-notify-py>=1.0.3         # 跨平台通知系统
 
 # 窗口管理功能 (Windows专用)
 pywin32>=306             # Windows API支持 (窗口操作、显示器检测)

@@ -28,14 +28,5 @@
         ],
         "is_active": true,
         "id": "82b248f1-b4d7-4311-b3d3-7e8f347b4c22"
-    },
-    {
-        "hour": 19,
-        "minute": 39,
-        "second": 53,
-        "name": "自备粮草",
-        "days": [],
-        "is_active": true,
-        "id": "c52ab321-637b-47ef-a193-97ad4d30820d"
     }
 ]
