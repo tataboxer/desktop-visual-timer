@@ -63,28 +63,27 @@ class TimerEngine:
         if not alarm.get('is_active', False):
             return
 
-        # Check if alarm has seconds specified
+        # Check if alarm has seconds specified or is a repeat alarm
         alarm_second = alarm.get('second', 0)
+        days = alarm.get('days', [])
         
-        if alarm_second > 0:
-            # Use our custom second-level checking for precise timing
+        # 🔧 FIX: 将所有repeat闹钟都使用second-level检查来避免重启后不触发的问题
+        if alarm_second > 0 or days:
+            # Use our custom second-level checking for:
+            # 1. Alarms with second precision
+            # 2. All repeat alarms (to avoid schedule library's "time passed" issue)
             self.second_level_alarms.append(alarm)
-            print(f"Added second-level alarm: {alarm['name']} at {alarm.get('hour', 0):02d}:{alarm.get('minute', 0):02d}:{alarm_second:02d}")
+            if days:
+                print(f"Added repeat alarm to second-level checking: {alarm['name']} at {alarm.get('hour', 0):02d}:{alarm.get('minute', 0):02d}:{alarm_second:02d}")
+            else:
+                print(f"Added second-level alarm: {alarm['name']} at {alarm.get('hour', 0):02d}:{alarm.get('minute', 0):02d}:{alarm_second:02d}")
         else:
-            # Use schedule library for minute-level precision
+            # Use schedule library only for one-time alarms without seconds
             job_time = f"{alarm.get('hour', 0):02d}:{alarm.get('minute', 0):02d}"
-            days = alarm.get('days', [])
-            
-            if not days: # One-time alarm
-                job = self.schedule.every().day.at(job_time)
-                if job:
-                    job.do(self.trigger_callback, alarm)
-            else: # Recurring alarm
-                for day in days:
-                    if hasattr(self.schedule.every(), day.lower()):
-                        job = getattr(self.schedule.every(), day.lower()).at(job_time)
-                        if job:
-                            job.do(self.trigger_callback, alarm)
+            job = self.schedule.every().day.at(job_time)
+            if job:
+                job.do(self.trigger_callback, alarm)
+                print(f"Scheduled one-time alarm: {alarm['name']} at {job_time}")
     
     def _check_second_level_alarms(self):
         """Check and trigger alarms that require second-level precision."""

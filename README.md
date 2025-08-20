@@ -170,7 +170,8 @@ desktop-visual-timer/
 │   └── notification.png       # 通知图标
 ├── docs/                       # 文档
 │   ├── alarm_prd.md            # 产品需求文档 (闹钟相关prd)
-│   └── window_manager.md     # 窗口管理完整实现文档 ⭐ NEW!
+│   ├── window_manager.md       # 窗口管理完整实现文档 ⭐ NEW!
+│   └── issues.md               # 问题追踪文档 ⭐ NEW!
 ├── alarms.json                # 闹钟数据存储文件
 ├── settings.json              # 应用设置存储文件
 ├── requirements.txt           # Python依赖（包含pywin32, pynput）
@@ -318,7 +319,13 @@ python src/main.py
 
 ## 📋 版本历史
 
-### v1.2.0 (当前版本)
+### v1.2.1 (当前版本)
+- 🔧 **重要Bug修复**：解决repeat闹钟重启/休眠唤醒后不触发的问题
+- 🔧 **配置文件修复**：修复settings.json语法错误，清理无用设置
+- 🔧 **调度系统优化**：repeat闹钟改用second-level检查系统，提高可靠性
+- 📚 **文档完善**：新增issue追踪文档，完善代码审查报告
+
+### v1.2.0
 - ✅ **新增自定义弹窗通知**：替代Toast通知，温和的淡蓝色设计
 - ✅ **左右布局优化**：左侧大图标(128x128)，右侧文字信息
 - ✅ **人性化交互**：非模态窗口，可稍后处理，30秒自动关闭
@@ -335,6 +342,40 @@ python src/main.py
 - 🟢 **Windows 10/11**：完全支持，主要测试平台
 - 🟡 **Linux**：基础功能支持，通知功能可能需要额外配置
 - 🟡 **macOS**：基础功能支持，托盘行为可能略有差异
+
+---
+
+## 📚 文档
+
+- [闹钟产品需求文档](docs/alarm_prd.md) - 详细的功能规格说明
+- [窗口管理功能文档](docs/window_manager.md) - 跨屏窗口移动功能说明
+- [问题追踪文档](docs/issues.md) - 已知问题与解决方案记录
+- [代码审查报告](code_review_report.md) - 全面的代码质量分析
+
+## 🔧 故障排除
+
+### 常见问题
+
+1. **程序无法启动**
+   - 检查Python版本（需要3.7+）
+   - 确认所有依赖已安装：`pip install -r requirements.txt`
+
+2. **系统托盘图标不显示**
+   - Windows：检查系统托盘设置
+   - Linux：确保系统支持托盘图标
+
+3. **闹钟不响**
+   - 检查系统音量设置
+   - 确认闹钟已启用（绿色开关）
+   - **重要**：如果repeat闹钟重启后不触发，请查看[问题追踪文档](docs/issues.md#issue-001)
+
+4. **窗口管理功能不工作**
+   - 确保安装了pywin32：`pip install pywin32>=306`
+   - 检查热键是否与其他软件冲突
+
+### 获取帮助
+- 查看[问题追踪文档](docs/issues.md)了解已知问题和解决方案
+- 查看[代码审查报告](code_review_report.md)了解项目技术细节
 
 ---
 

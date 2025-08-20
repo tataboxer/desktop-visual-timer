@@ -32,6 +32,6 @@
         "hotkey": "F9",
         "exclude_fullscreen": true,
         "debug_mode": false,
-        " ": false
+        "auto_minimize": false
     }
 }
